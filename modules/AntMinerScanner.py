@@ -6,8 +6,9 @@ import aiohttp
 
 
 class AntMinerScanner:
-    def __init__(self, subnets: list):
+    def __init__(self, subnets: list, excludes: list):
         self.subnets = subnets
+        self.excludes = excludes
 
     async def __is_asic_miner_async(self, ip: str) -> str | None:
         """
@@ -50,7 +51,12 @@ class AntMinerScanner:
             async_tasks.extend([self.__is_asic_miner_async(ip) for ip in ips])
 
         results = await asyncio.gather(*async_tasks)
-        asic_miners.extend(filter(None, results))
+
+        # Фильтруем IP-адреса: исключаем те, которые находятся в self.excludes
+        filtered_results = filter(lambda ip: ip and ip not in self.excludes, results)
+        asic_miners.extend(filtered_results)
+
+        # asic_miners.extend(filter(None, results))
 
         return asic_miners
 

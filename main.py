@@ -1,14 +1,17 @@
 import asyncio
+from typing import Final
 
-from modules import *
-from modules.AntMenerData import AntMinerData
+from modules.AntMinerControl import AntMinerControl
+from modules.AntMinerData import AntMinerData
 from modules.AntMinerHelper import AntMinerHelper
 from modules.AntMinerScanner import AntMinerScanner
+from modules.AntminerPrintData import AntMinerPrintData
+from modules.MailSend import MailSend
 
 # -----------------------------------------------------------------------------
 
 
-SUBNETS = [
+SUBNETS: Final[list[str]] = [
     "192.168.0",
     "192.168.1",
     "192.168.2",
@@ -18,40 +21,39 @@ SUBNETS = [
     "192.168.6",
     "192.168.7",
     "192.168.8",
-    "192.168.9"
+    "192.168.9",
 ]
 
-scan = AntMinerScanner(SUBNETS)
-scan_asics = asyncio.run(scan.get_asic_miners())
+IP_EXCLUDES: Final[list[str]] = [
+    '192.168.6.157',
+    # '192.168.0.101'
+]
 
-if scan_asics:
-    print("Найденные AntMiner:", len(scan_asics))
+scan = AntMinerScanner(SUBNETS, IP_EXCLUDES)
+scan_miner_list = asyncio.run(scan.get_asic_miners())
 
-    for miner in scan_asics:
-        print(miner)
+# **
+
+if scan_miner_list:
+    print("Найденные AntMiner:", len(scan_miner_list))
+
+    for miner_ip in scan_miner_list:
+        print("-> ip:", miner_ip)
+
+        # вывод данных об майнере в консоль
+        miner_data = AntMinerData(miner_ip)
+        # print_data_asics = AntMinerPrintData(miner_data, AntMinerHelper)
+        # print_data_asics.print_data()
+
+        # **
+
+        # .control - метод, анализирующий ошибки, и отправляющий уведомления
+        miner_control = AntMinerControl(
+            miner_ip,
+            miner_data,
+            AntMinerHelper,
+            MailSend
+        )
+        miner_control.control()
 else:
     print("ASIC майнеры не найдены.")
-
-# host = '192.168.0.104'
-# antminer = AntMinerData(host)
-#
-# print("fan1: {}, fan2: {}, fan3: {}, fan4: {}".format(
-#     antminer.get_fan_speed(1),
-#     antminer.get_fan_speed(2),
-#     antminer.get_fan_speed(3),
-#     antminer.get_fan_speed(4),
-# ))
-#
-# print("plate 1: ", antminer.get_temp_chip_on_plate(1))
-# print("plate 2: ", antminer.get_temp_chip_on_plate(2))
-# print("plate 3: ", antminer.get_temp_chip_on_plate(3))
-#
-# print("ghs av: ", antminer.get_summary_ghs_av())
-# print("ghs 30 min: ", antminer.get_summary_ghs_30_min())
-# print("ghs current: ", antminer.get_summary_ghs_current())
-# print("pool name: ", antminer.get_pools_user())
-# print("max temp", antminer.get_temp_max())
-#
-# print("hash from name:, {}".format(
-#     AntMinerHelper.extract_hash_rate_from_name(antminer.get_pools_user())
-# ))
